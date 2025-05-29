@@ -3,12 +3,14 @@ on:
   push:
     branches: [ main ]
 jobs:
+  
   redeploy_everything:
+    uses: ubuntu-latest
     name: Deploying everything to staging cluster
 
     steps:
-      - name: SSH server
-      - run: |
+      name: SSH server
+      run: |
           echo ${{ secrets.SSH_SECRET }} &> ~/ssh_key
           ssh -i ~/ssh_key ubuntu@52.66.244.185
           cd ooooo && git pull

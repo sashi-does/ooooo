@@ -5,36 +5,29 @@ on:
     branches: [main]
 
 jobs:
-  deploy:
+  redeploy_everything:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code (required for GitHub context)
-        uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
       - name: SSH and deploy to EC2
         run: |
           echo "${{ secrets.SSH_SECRET }}" > ssh_key
           chmod 600 ssh_key
 
-          ssh -tt -o StrictHostKeyChecking=no -i ssh_key ubuntu@52.66.244.185 << 'EOF'
+          ssh -tt -o StrictHostKeyChecking=no -o ControlMaster=no -i ssh_key ubuntu@52.66.244.185 << 'EOF'
             set -e
-            cd ~/ooooo
 
-            # Pull the latest code
+            cd ~/ooooo
             git pull origin main
 
-            # Load environment (e.g., nvm)
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-            # Install dependencies
             pnpm i
-
-            # Build the project
             pnpm run build
 
-            # Restart services
             pm2 restart http-server || pm2 start http-server
             pm2 restart ws-server || pm2 start ws-server
             pm2 restart web || pm2 start web

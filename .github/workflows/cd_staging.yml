@@ -1,0 +1,19 @@
+name: Deploying to staging
+on:
+  push:
+    branches: [ main ]
+jobs:
+  redeploy_everything:
+    name: Deploying everything to staging cluster
+
+    steps:
+      - name: SSH server
+      - run: |
+          echo ${{ secrets.SSH_SECRET }} &> ~/ssh_key
+          ssh -i ~/ssh_key ubuntu@52.66.244.185
+          cd ooooo && git pull
+          pnpm i 
+          pnpm run build
+          pm2 restart http-server
+          pm2 restart ws-server
+          pm2 restart web 

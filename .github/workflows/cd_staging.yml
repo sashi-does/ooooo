@@ -14,12 +14,28 @@ jobs:
         run: |
           echo "${{ secrets.SSH_SECRET }}" > ~/ssh_key
           chmod 600 ~/ssh_key
+
           ssh -o StrictHostKeyChecking=no -i ~/ssh_key ubuntu@52.66.244.185 << 'EOF'
-            cd ooooo
+            # Load nvm
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+            # Add pnpm to PATH
+            export PATH="$HOME/.local/share/pnpm:$PATH"
+
+            # Go to turbo repo
+            cd ~/ooooo
+
+            # Pull latest code
             git pull
-            pnpm i 
+
+            # Install dependencies and build
+            pnpm install
             pnpm run build
-            pm2 restart http-server
-            pm2 restart ws-server
-            pm2 restart web
+
+            # Restart PM2 services (if not running, start them)
+            pm2 restart http-server || pm2 start dist/http-server.js --name http-server
+            pm2 restart ws-server || pm2 start dist/ws-server.js --name ws-server
+            pm2 restart web || pm2 start dist/web.js --name web
           EOF

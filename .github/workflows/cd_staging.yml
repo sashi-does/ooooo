@@ -2,40 +2,40 @@ name: Deploying to staging
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  redeploy_everything:
+  deploy:
     runs-on: ubuntu-latest
-    name: Deploying everything to staging cluster
 
     steps:
-      - name: SSH into server and deploy
+      - name: Checkout code (required for GitHub context)
+        uses: actions/checkout@v3
+
+      - name: SSH and deploy to EC2
         run: |
-          echo "${{ secrets.SSH_SECRET }}" > ~/ssh_key
-          chmod 600 ~/ssh_key
+          echo "${{ secrets.SSH_SECRET }}" > ssh_key
+          chmod 600 ssh_key
 
-          ssh -o StrictHostKeyChecking=no -i ~/ssh_key ubuntu@52.66.244.185 << 'EOF'
-            # Load nvm
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
-            # Add pnpm to PATH
-            export PATH="$HOME/.local/share/pnpm:$PATH"
-
-            # Go to turbo repo
+          ssh -tt -o StrictHostKeyChecking=no -i ssh_key ubuntu@52.66.244.185 << 'EOF'
+            set -e
             cd ~/ooooo
 
-            # Pull latest code
-            git pull
+            # Pull the latest code
+            git pull origin main
 
-            # Install dependencies and build
-            pnpm install
+            # Load environment (e.g., nvm)
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+            # Install dependencies
+            pnpm i
+
+            # Build the project
             pnpm run build
 
-            # Restart PM2 services (if not running, start them)
-            pm2 restart http-server || pm2 start dist/http-server.js --name http-server
-            pm2 restart ws-server || pm2 start dist/ws-server.js --name ws-server
-            pm2 restart web || pm2 start dist/web.js --name web
+            # Restart services
+            pm2 restart http-server || pm2 start http-server
+            pm2 restart ws-server || pm2 start ws-server
+            pm2 restart web || pm2 start web
           EOF

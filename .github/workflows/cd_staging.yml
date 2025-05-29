@@ -9,8 +9,7 @@ jobs:
     name: Deploying everything to staging cluster
 
     steps:
-      name: SSH server
-      run: |
+      - run: |
           echo ${{ secrets.SSH_SECRET }} &> ~/ssh_key
           ssh -i ~/ssh_key ubuntu@52.66.244.185
           cd ooooo && git pull
